@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+import base64
+
 from flask import (
     Blueprint,
-    Response,
     flash,
     render_template,
     request,
 )
+from flask.typing import ResponseReturnValue
 
 from .converter import ConversionError, ascii_to_svg, svg_to_png
 
@@ -23,7 +25,7 @@ def index() -> str:
 
 
 @bp.post("/convert")
-def convert() -> Response:
+def convert() -> ResponseReturnValue:
     text: str = request.form.get("text", "")
     output_format: str = request.form.get("format", "svg").lower()
     theme: str = request.form.get("theme", _DEFAULT_THEME).lower()
@@ -59,24 +61,33 @@ def convert() -> Response:
             "index.html", text=text, format=output_format, theme=theme
         ), 422
 
-    if output_format == "svg":
-        return Response(
-            svg,
-            mimetype="image/svg+xml",
-            headers={"Content-Disposition": 'attachment; filename="output.svg"'},
-        )
+    if output_format == "png":
+        try:
+            png_bytes = svg_to_png(svg)
+        except ConversionError as exc:
+            flash(str(exc))
+            return render_template(
+                "index.html", text=text, format=output_format, theme=theme
+            ), 422
+        data_b64 = base64.b64encode(png_bytes).decode("ascii")
+        result = {
+            "data_uri": f"data:image/png;base64,{data_b64}",
+            "filename": "diagram.png",
+        }
+    else:
+        data_b64 = base64.b64encode(svg.encode("utf-8")).decode("ascii")
+        result = {
+            "data_uri": f"data:image/svg+xml;base64,{data_b64}",
+            "filename": "diagram.svg",
+        }
 
-    # PNG path
-    try:
-        png_bytes = svg_to_png(svg)
-    except ConversionError as exc:
-        flash(str(exc))
-        return render_template(  # type: ignore[return-value]
-            "index.html", text=text, format=output_format, theme=theme
-        ), 422
-
-    return Response(
-        png_bytes,
-        mimetype="image/png",
-        headers={"Content-Disposition": 'attachment; filename="output.png"'},
+    # Render the page with an inline preview + a download link (data URI), so
+    # the user reviews the diagram before downloading. No server-side storage,
+    # no extra round-trip.
+    return render_template(
+        "index.html",
+        text=text,
+        format=output_format,
+        theme=theme,
+        result=result,
     )

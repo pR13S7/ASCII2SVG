@@ -44,9 +44,21 @@
             {% if theme == "dark" %}checked{% endif %}> Dark</label>
         </fieldset>
 
-        <button type="submit">Convert &amp; Download</button>
+        <button type="submit">Convert</button>
       </div>
     </form>
+
+    {% if result %}
+    <section class="result">
+      <h2>Preview</h2>
+      <div class="preview">
+        <img src="{{ result.data_uri }}" alt="Generated diagram preview">
+      </div>
+      <a class="download" href="{{ result.data_uri }}" download="{{ result.filename }}">
+        Download {{ result.filename }}
+      </a>
+    </section>
+    {% endif %}
   </main>
 </body>
 </html>
