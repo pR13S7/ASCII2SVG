@@ -34,14 +34,14 @@ THEMES: dict[str, dict[str, str]] = {
         "foreground": "#1a1a1a",
         # Monospace preserves ASCII column alignment.
         # DejaVu Sans Mono is provided by fonts-dejavu-core (installed in Dockerfile).
-        "font_family": "'DejaVu Sans Mono', 'Noto Emoji', Menlo, Consolas, monospace",
+        "font_family": "'DejaVu Sans Mono', 'Symbola', Menlo, Consolas, monospace",
     },
     "dark": {
         "background": "#1e1e1e",
         "foreground": "#e6e6e6",
         # Monospace preserves ASCII column alignment.
         # DejaVu Sans Mono is provided by fonts-dejavu-core (installed in Dockerfile).
-        "font_family": "'DejaVu Sans Mono', 'Noto Emoji', Menlo, Consolas, monospace",
+        "font_family": "'DejaVu Sans Mono', 'Symbola', Menlo, Consolas, monospace",
     },
 }
 
