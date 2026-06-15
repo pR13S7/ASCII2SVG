@@ -4,9 +4,18 @@ FROM rust:1-slim-bookworm AS builder
 RUN cargo install svgbob_cli --locked --version 0.7.6
 
 # B1 — discovery: confirm the real binary name from this output.
-# `cargo install svgbob_cli` produces `svgbob_cli` for current versions.
-# We rename it to `svgbob` in runtime for a stable app command name.
+# Normalize names by ensuring /usr/local/cargo/bin/svgbob exists whether
+# cargo installed `svgbob` or `svgbob_cli`.
 RUN ls -la /usr/local/cargo/bin/
+RUN set -eux; \
+    if [ -x /usr/local/cargo/bin/svgbob ]; then \
+      true; \
+    elif [ -x /usr/local/cargo/bin/svgbob_cli ]; then \
+      ln -s /usr/local/cargo/bin/svgbob_cli /usr/local/cargo/bin/svgbob; \
+    else \
+      echo "svgbob binary missing after cargo install" >&2; \
+      exit 1; \
+    fi
 
 
 # ── Stage 2: Python runtime ───────────────────────────────────────────────────
@@ -32,8 +41,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # rootfs when the container runs as the unprivileged appuser.
 RUN fc-cache -fv
 
-# Copy and normalize binary name from builder stage.
-COPY --from=builder /usr/local/cargo/bin/svgbob_cli /usr/local/bin/svgbob
+# Copy normalized binary from builder stage.
+COPY --from=builder /usr/local/cargo/bin/svgbob /usr/local/bin/svgbob
 
 # S1 — link check: fails loud at build time if a required shared lib is absent.
 RUN ldd /usr/local/bin/svgbob
