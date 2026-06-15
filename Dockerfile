@@ -26,6 +26,9 @@ FROM python:3.12-slim-bookworm AS runtime
 # cairosvg renders SVG <text> elements as blank glyphs in the PNG output.
 # fonts-dejavu-core also provides 'DejaVu Sans Mono', the monospace font used
 # for diagram text (preserves ASCII column alignment).
+# fonts-noto-emoji is the MONOCHROME Noto emoji font: cairo renders it reliably
+# as black-and-white glyphs so emoji (🎉 ⚠️) appear in PNG output. (Color emoji
+# fonts are not reliably rendered by cairo, so the B/W set is used instead.)
 RUN apt-get update && apt-get install -y --no-install-recommends \
       libcairo2 \
       libpango-1.0-0 \
@@ -35,6 +38,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       shared-mime-info \
       fontconfig \
       fonts-dejavu-core \
+      fonts-noto-emoji \
     && rm -rf /var/lib/apt/lists/*
 
 # Pre-build the system font cache as root so it is readable on a read-only

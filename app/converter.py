@@ -34,14 +34,14 @@ THEMES: dict[str, dict[str, str]] = {
         "foreground": "#1a1a1a",
         # Monospace preserves ASCII column alignment.
         # DejaVu Sans Mono is provided by fonts-dejavu-core (installed in Dockerfile).
-        "font_family": "'DejaVu Sans Mono', Menlo, Consolas, monospace",
+        "font_family": "'DejaVu Sans Mono', 'Noto Emoji', Menlo, Consolas, monospace",
     },
     "dark": {
         "background": "#1e1e1e",
         "foreground": "#e6e6e6",
         # Monospace preserves ASCII column alignment.
         # DejaVu Sans Mono is provided by fonts-dejavu-core (installed in Dockerfile).
-        "font_family": "'DejaVu Sans Mono', Menlo, Consolas, monospace",
+        "font_family": "'DejaVu Sans Mono', 'Noto Emoji', Menlo, Consolas, monospace",
     },
 }
 
@@ -323,6 +323,11 @@ def text_to_svg(text: str, theme: str = _DEFAULT_THEME) -> str:
 # SVG -> PNG
 # ---------------------------------------------------------------------------
 
+# Rasterise at 3x so PNG text/lines are crisp rather than pixelated. The source
+# SVG is small (~15px font), so 1x output looks blurry when viewed enlarged.
+_PNG_SCALE = 3
+
+
 def svg_to_png(svg_string: str) -> bytes:
     """
     Rasterise an SVG string to PNG bytes using cairosvg.
@@ -333,6 +338,8 @@ def svg_to_png(svg_string: str) -> bytes:
     """
     try:
         import cairosvg  # type: ignore[import]
-        return cairosvg.svg2png(bytestring=svg_string.encode(), unsafe=False)
+        return cairosvg.svg2png(
+            bytestring=svg_string.encode(), unsafe=False, scale=_PNG_SCALE
+        )
     except Exception as exc:
         raise ConversionError(f"PNG rendering failed: {exc}") from exc
