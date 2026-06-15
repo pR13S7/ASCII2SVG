@@ -262,9 +262,12 @@ def ascii_to_svg(text: str, theme: str = _DEFAULT_THEME) -> str:
 # Plain text -> SVG  (verbatim monospace; no diagram interpretation)
 # ---------------------------------------------------------------------------
 
-_TEXT_CHAR_W = 8.5   # px advance per monospace column at the font size below
-_TEXT_LINE_H = 19    # px per line
+# DejaVu Sans Mono advance is ~0.602em; at 15px that's ~9.03px. Use a slightly
+# larger value so the computed canvas width never clips the right edge (the SVG
+# viewport hides overflow). Slight extra right margin is harmless.
 _TEXT_FONT_SIZE = 15
+_TEXT_CHAR_W = 9.4   # px advance per monospace column at _TEXT_FONT_SIZE
+_TEXT_LINE_H = 19    # px per line
 _TEXT_PAD = 12       # px padding around the text block
 
 
