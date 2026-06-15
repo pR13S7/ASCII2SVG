@@ -21,7 +21,7 @@
       {% endif %}
     {% endwith %}
 
-    <form method="post" action="/convert">
+    <form method="post" action="{{ url_for('main.index') }}">
       <label for="text">ASCII input</label>
       <textarea id="text" name="text" rows="20" cols="80"
                 placeholder="Paste your ASCII art here…"

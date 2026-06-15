@@ -5,6 +5,7 @@ A minimal Flask web application that converts ASCII art into SVG or PNG files.
 ## Features
 
 - Paste ASCII art in the browser and download it as **SVG** or **PNG**
+- Unicode box-drawing input is auto-normalized to ASCII for better svgbob parsing (`│┌┐└┘►▼≤…` -> `|+-<>...`)
 - **Light / Dark diagram theme** — choose diagram colours (dark theme PNGs get a solid `#1e1e1e` background so light strokes remain visible)
 - 64 KB input limit enforced both client-side and server-side
 - SSRF-safe PNG rendering via cairosvg

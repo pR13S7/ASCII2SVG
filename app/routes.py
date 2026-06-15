@@ -24,6 +24,7 @@ def index() -> str:
     return render_template("index.html", text="", format="svg", theme=_DEFAULT_THEME)
 
 
+@bp.post("/")
 @bp.post("/convert")
 def convert() -> ResponseReturnValue:
     text: str = request.form.get("text", "")

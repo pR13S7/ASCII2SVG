@@ -11,6 +11,7 @@ _SPEC.loader.exec_module(_MODULE)
 
 THEMES = _MODULE.THEMES
 _apply_theme_to_svg = _MODULE._apply_theme_to_svg
+_normalize_for_svgbob = _MODULE._normalize_for_svgbob
 
 
 class ApplyThemeToSvgTests(unittest.TestCase):
@@ -39,6 +40,32 @@ class ApplyThemeToSvgTests(unittest.TestCase):
 
         self.assertIn('<rect width="100%" height="100%" fill="#ffffff"/>', out)
         self.assertIn("<style>", out)
+
+
+class NormalizeForSvgbobTests(unittest.TestCase):
+    def test_normalizes_unicode_diagram_glyphs(self) -> None:
+        source = (
+            "/pipeline <task>  (orchestrator: claude-opus-4-8[1m])\n"
+            "        │\n"
+            "        ▼\n"
+            "   ┌─ Stage 0: Explore ─────────────────────────────────────► (no gate)\n"
+            "   ├─ Stage 1: planner ─────────────► PLAN COMPLETE\n"
+            "   │       │ NEEDS REVISION (≤ 3)          │ APPROVED\n"
+            "   └─ Stage 5: Finalize ──────────► 🎉 done\n"
+        )
+
+        normalized = _normalize_for_svgbob(source)
+
+        self.assertNotIn("│", normalized)
+        self.assertNotIn("▼", normalized)
+        self.assertNotIn("►", normalized)
+        self.assertNotIn("≤", normalized)
+        self.assertNotIn("🎉", normalized)
+        self.assertIn("|", normalized)
+        self.assertIn("v", normalized)
+        self.assertIn("<= 3", normalized)
+        self.assertIn("* done", normalized)
+        self.assertTrue(normalized.isascii())
 
 
 if __name__ == "__main__":

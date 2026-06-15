@@ -46,6 +46,84 @@ THEMES: dict[str, dict[str, str]] = {
 
 _DEFAULT_THEME = "light"
 
+# Unicode-to-ASCII normalization for svgbob input.
+# svgbob is optimized for ASCII diagrams; many users paste box-drawing Unicode.
+_SVGBOB_NORMALIZE_MAP = str.maketrans(
+    {
+        "│": "|",
+        "┃": "|",
+        "┆": "|",
+        "┇": "|",
+        "╎": "|",
+        "╏": "|",
+        "─": "-",
+        "━": "-",
+        "┄": "-",
+        "┅": "-",
+        "┈": "-",
+        "┉": "-",
+        "╴": "-",
+        "╶": "-",
+        "┌": "+",
+        "┐": "+",
+        "└": "+",
+        "┘": "+",
+        "├": "+",
+        "┤": "+",
+        "┬": "+",
+        "┴": "+",
+        "┼": "+",
+        "┏": "+",
+        "┓": "+",
+        "┗": "+",
+        "┛": "+",
+        "┣": "+",
+        "┫": "+",
+        "┳": "+",
+        "┻": "+",
+        "╋": "+",
+        "╭": "+",
+        "╮": "+",
+        "╯": "+",
+        "╰": "+",
+        "►": ">",
+        "▶": ">",
+        "▸": ">",
+        "→": ">",
+        "⟶": ">",
+        "➡": ">",
+        "◄": "<",
+        "◀": "<",
+        "◂": "<",
+        "←": "<",
+        "▼": "v",
+        "▽": "v",
+        "↓": "v",
+        "▲": "^",
+        "△": "^",
+        "↑": "^",
+        "≤": "<=",
+        "≥": ">=",
+        "…": "...",
+        "—": "-",
+        "–": "-",
+        "‑": "-",
+        "🎉": "*",
+    }
+)
+
+
+def _normalize_for_svgbob(text: str) -> str:
+    """
+    Normalize common Unicode diagram glyphs to ASCII so svgbob can parse them.
+
+    This preserves user intent for box/arrow diagrams pasted from docs/chats.
+    """
+    normalized = text.translate(_SVGBOB_NORMALIZE_MAP)
+    if normalized != text:
+        logger.info("Normalized Unicode diagram glyphs to ASCII for svgbob parsing")
+    return normalized
+
 
 # ---------------------------------------------------------------------------
 # Theme post-processing — applied to svgbob output regardless of CLI flags
@@ -122,7 +200,9 @@ def ascii_to_svg(text: str, theme: str = _DEFAULT_THEME) -> str:
     if not text or not text.strip():
         raise ConversionError("Input text is empty")
 
-    lines = text.splitlines()
+    normalized_text = _normalize_for_svgbob(text)
+
+    lines = normalized_text.splitlines()
     if len(lines) > 500:
         raise ConversionError("Input exceeds 500 lines")
 
@@ -151,7 +231,7 @@ def ascii_to_svg(text: str, theme: str = _DEFAULT_THEME) -> str:
     try:
         result = subprocess.run(
             cmd,
-            input=text.encode("utf-8"),
+            input=normalized_text.encode("utf-8"),
             capture_output=True,
             timeout=10,
             shell=False,
