@@ -55,22 +55,32 @@ def _apply_theme_to_svg(svg: str, theme_cfg: dict) -> str:
     """
     Make svgbob's output honour the selected theme.
 
-    svgbob themes its ``.filled`` / backdrop elements from the CLI colour flags,
-    but it hardcodes ``stroke: black`` / ``fill: black`` in the base line and
-    text CSS rules — which are invisible on a dark background. A competing
-    injected <style> with bare selectors loses specificity to svgbob's own
-    ``.svgbob text`` rules, so instead we recolour those hardcoded blacks
-    directly. We also inject a full-canvas background rect so the SVG/PNG always
-    has an opaque themed background.
+    svgbob may emit built-in CSS that is tuned for a light theme and can produce
+    visual artifacts (text overlap / reduced readability) when consumers apply
+    a different font or colour context. To keep rendering stable across versions,
+    inject an explicit, high-specificity override style block and an opaque
+    background rect.
     """
     bg = theme_cfg["background"]
     fg = theme_cfg["foreground"]
 
-    # Recolour svgbob's hardcoded black base stroke/fill to the theme fg.
-    # These literals appear only in svgbob's base `.svgbob line/...` and
-    # `.svgbob text` rules; `.filled`/backdrop already use the CLI colours.
-    svg = svg.replace("stroke: black", f"stroke: {fg}")
-    svg = svg.replace("fill: black", f"fill: {fg}")
+    # Force stable stroke/fill/text rendering via targeted overrides, instead of
+    # global "stroke: black" string replacement which can affect unrelated rules.
+    style_override = (
+        "<style>"
+        ".svgbob line,.svgbob path,.svgbob circle,.svgbob rect,.svgbob polygon{"
+        f"stroke:{fg}!important;"
+        "}"
+        ".svgbob text{"
+        f"fill:{fg}!important;"
+        "stroke:none!important;"
+        f"font-family:{theme_cfg['font_family']}!important;"
+        "}"
+        ".svgbob .filled{"
+        f"fill:{fg}!important;"
+        "}"
+        "</style>"
+    )
 
     # Inject an opaque background rect right after the opening <svg ...> tag.
     # Locate "<svg" explicitly so a leading <?xml ...?> declaration is handled.
@@ -81,7 +91,14 @@ def _apply_theme_to_svg(svg: str, theme_cfg: dict) -> str:
     svg_tag_end = svg.find(">", svg_start)
     if svg_tag_end == -1:
         return svg  # malformed — return as-is
-    return svg[: svg_tag_end + 1] + "\n" + rect + "\n" + svg[svg_tag_end + 1 :]
+    return "\n".join(
+        [
+            svg[: svg_tag_end + 1],
+            style_override,
+            rect,
+            svg[svg_tag_end + 1 :],
+        ]
+    )
 
 
 # ---------------------------------------------------------------------------
