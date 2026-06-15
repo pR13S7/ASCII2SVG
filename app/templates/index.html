@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ASCII2SVG</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <main>
+    <h1>ASCII2SVG</h1>
+    <p class="subtitle">Paste ASCII art below and download it as SVG or PNG.</p>
+
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <ul class="errors">
+          {% for msg in messages %}
+            <li>{{ msg }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+
+    <form method="post" action="/convert">
+      <label for="text">ASCII input</label>
+      <textarea id="text" name="text" rows="20" cols="80"
+                placeholder="Paste your ASCII art here…"
+                spellcheck="false">{{ text }}</textarea>
+
+      <div class="controls">
+        <fieldset>
+          <legend>Output format</legend>
+          <label><input type="radio" name="format" value="svg"
+            {% if format != "png" %}checked{% endif %}> SVG</label>
+          <label><input type="radio" name="format" value="png"
+            {% if format == "png" %}checked{% endif %}> PNG</label>
+        </fieldset>
+
+        <fieldset>
+          <legend>Diagram theme</legend>
+          <label><input type="radio" name="theme" value="light"
+            {% if theme != "dark" %}checked{% endif %}> Light</label>
+          <label><input type="radio" name="theme" value="dark"
+            {% if theme == "dark" %}checked{% endif %}> Dark</label>
+        </fieldset>
+
+        <button type="submit">Convert &amp; Download</button>
+      </div>
+    </form>
+  </main>
+</body>
+</html>

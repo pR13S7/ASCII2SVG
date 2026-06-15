@@ -1,0 +1,13 @@
+.git
+.env
+.wolf
+.codegraph
+.claude
+__pycache__
+*.py[cod]
+.venv/
+venv/
+env/
+.DS_Store
+README.md
+hooks/

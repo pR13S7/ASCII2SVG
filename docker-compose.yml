@@ -1,0 +1,14 @@
+services:
+  web:
+    build: .
+    ports:
+      - "8003:8003"
+    environment:
+      # SECRET_KEY is optional — if blank the entrypoint auto-generates an
+      # ephemeral key (flash messages reset on container restart).
+      # Set it explicitly in .env to keep flash messages stable across restarts.
+      SECRET_KEY: ${SECRET_KEY:-}
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
