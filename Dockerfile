@@ -1,7 +1,7 @@
 # ── Stage 1: Build svgbob from crates.io ─────────────────────────────────────
 FROM rust:1-slim-bookworm AS builder
 
-RUN cargo install svgbob_cli --locked --version 0.6.7
+RUN cargo install svgbob_cli --locked --version 0.7.6
 
 # B1 — discovery: confirm the real binary name from this output.
 # `cargo install svgbob_cli` typically produces a binary named `svgbob`.
