@@ -1,5 +1,5 @@
 # ── Stage 1: Build svgbob from crates.io ─────────────────────────────────────
-FROM rust:1-bookworm-slim AS builder
+FROM rust:1-slim-bookworm AS builder
 
 RUN cargo install svgbob_cli --locked --version 0.6.7
 
@@ -11,7 +11,7 @@ RUN ls -la /usr/local/cargo/bin/
 
 
 # ── Stage 2: Python runtime ───────────────────────────────────────────────────
-FROM python:3.12-bookworm-slim AS runtime
+FROM python:3.12-slim-bookworm AS runtime
 
 # System libs required by cairosvg / cairo.
 # B2 — fonts-dejavu-core + fontconfig are REQUIRED: without a font package,
