@@ -29,6 +29,14 @@
 
       <div class="controls">
         <fieldset>
+          <legend>Mode</legend>
+          <label><input type="radio" name="mode" value="text"
+            {% if mode != "diagram" %}checked{% endif %}> Plain text</label>
+          <label><input type="radio" name="mode" value="diagram"
+            {% if mode == "diagram" %}checked{% endif %}> Diagram</label>
+        </fieldset>
+
+        <fieldset>
           <legend>Output format</legend>
           <label><input type="radio" name="format" value="svg"
             {% if format != "png" %}checked{% endif %}> SVG</label>
