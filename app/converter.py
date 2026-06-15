@@ -10,6 +10,7 @@ from __future__ import annotations
 import logging
 import os
 import subprocess
+from xml.sax.saxutils import escape
 
 logger = logging.getLogger(__name__)
 
@@ -255,6 +256,64 @@ def ascii_to_svg(text: str, theme: str = _DEFAULT_THEME) -> str:
     svg = _apply_theme_to_svg(svg, theme_cfg)
 
     return svg
+
+
+# ---------------------------------------------------------------------------
+# Plain text -> SVG  (verbatim monospace; no diagram interpretation)
+# ---------------------------------------------------------------------------
+
+_TEXT_CHAR_W = 8.5   # px advance per monospace column at the font size below
+_TEXT_LINE_H = 19    # px per line
+_TEXT_FONT_SIZE = 15
+_TEXT_PAD = 12       # px padding around the text block
+
+
+def text_to_svg(text: str, theme: str = _DEFAULT_THEME) -> str:
+    """
+    Render input verbatim as monospace SVG, WITHOUT svgbob's diagram parsing.
+
+    Each line is emitted as one positioned <tspan>; the monospace font's own
+    advance keeps Unicode box-drawing glyphs (│ ─ ┌ ┐ └ ┘ ├ ▼ ► ◄) connected and
+    columns aligned. Use this for box-drawing diagrams, tables and prose; use
+    ``ascii_to_svg`` only for hand-drawn ASCII art made of - | + / \\.
+    """
+    if not text or not text.strip():
+        raise ConversionError("Input text is empty")
+
+    lines = text.split("\n")
+    if len(lines) > 500:
+        raise ConversionError("Input exceeds 500 lines")
+
+    max_cols = max((len(line) for line in lines), default=0)
+    if max_cols > 500:
+        raise ConversionError("Input exceeds 500 columns")
+
+    theme_cfg = THEMES.get(theme)
+    if theme_cfg is None:
+        logger.warning("Unknown theme %r — falling back to %r", theme, _DEFAULT_THEME)
+        theme_cfg = THEMES[_DEFAULT_THEME]
+
+    bg = theme_cfg["background"]
+    fg = theme_cfg["foreground"]
+    font = theme_cfg["font_family"]
+
+    width = int(max_cols * _TEXT_CHAR_W) + 2 * _TEXT_PAD
+    height = len(lines) * _TEXT_LINE_H + 2 * _TEXT_PAD
+
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" '
+        f'width="{width}" height="{height}" viewBox="0 0 {width} {height}">',
+        f'<rect width="100%" height="100%" fill="{bg}"/>',
+        f'<text xml:space="preserve" font-family="{font}" '
+        f'font-size="{_TEXT_FONT_SIZE}" fill="{fg}">',
+    ]
+    for i, line in enumerate(lines):
+        y = _TEXT_PAD + (i + 1) * _TEXT_LINE_H - 4
+        parts.append(f'<tspan x="{_TEXT_PAD}" y="{y}">{escape(line)}</tspan>')
+    parts.append("</text>")
+    parts.append("</svg>")
+
+    return "\n".join(parts)
 
 
 # ---------------------------------------------------------------------------
