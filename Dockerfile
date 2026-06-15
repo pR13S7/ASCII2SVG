@@ -4,9 +4,8 @@ FROM rust:1-slim-bookworm AS builder
 RUN cargo install svgbob_cli --locked --version 0.7.6
 
 # B1 — discovery: confirm the real binary name from this output.
-# `cargo install svgbob_cli` typically produces a binary named `svgbob`.
-# If the ls output below shows a different name, update the COPY line in the
-# runtime stage AND the SVGBOB_BIN env var (or default in converter.py).
+# `cargo install svgbob_cli` produces `svgbob_cli` for current versions.
+# We rename it to `svgbob` in runtime for a stable app command name.
 RUN ls -la /usr/local/cargo/bin/
 
 
@@ -33,10 +32,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # rootfs when the container runs as the unprivileged appuser.
 RUN fc-cache -fv
 
-# Copy svgbob binary from builder stage.
-# B1 — if the builder ls output above showed a different binary name,
-# change `svgbob` below to match.
-COPY --from=builder /usr/local/cargo/bin/svgbob /usr/local/bin/svgbob
+# Copy and normalize binary name from builder stage.
+COPY --from=builder /usr/local/cargo/bin/svgbob_cli /usr/local/bin/svgbob
 
 # S1 — link check: fails loud at build time if a required shared lib is absent.
 RUN ldd /usr/local/bin/svgbob
