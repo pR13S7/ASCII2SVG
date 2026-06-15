@@ -3,7 +3,6 @@ Core conversion logic: ASCII art -> SVG, SVG -> PNG.
 
 ascii_to_svg  — converts a plain-text ASCII diagram to an SVG string via svgbob
 svg_to_png    — rasterises an SVG string to PNG bytes via cairosvg
-url_fetcher   — SSRF-safe URL fetcher used internally by cairosvg
 """
 
 from __future__ import annotations
@@ -49,59 +48,40 @@ _DEFAULT_THEME = "light"
 
 
 # ---------------------------------------------------------------------------
-# URL fetcher (passed to cairosvg for SSRF safety)
-# ---------------------------------------------------------------------------
-
-def url_fetcher(url: str) -> dict:
-    """
-    cairosvg-compatible URL fetcher.
-
-    This app converts ASCII text → SVG → PNG; no legitimate external URLs are
-    ever embedded in the generated SVG.  data: URIs are handled by cairosvg
-    internally and never reach this function.  All other URLs are refused
-    outright, which is both simpler and safer than delegating to cairosvg's
-    internal fetch (which uses a private API path that varies by version).
-    """
-    raise ConversionError("Remote resource fetching is not permitted")
-
-
-# ---------------------------------------------------------------------------
 # Theme post-processing — applied to svgbob output regardless of CLI flags
 # ---------------------------------------------------------------------------
 
 def _apply_theme_to_svg(svg: str, theme_cfg: dict) -> str:
     """
-    Guarantee theme colours are present in svgbob's output SVG.
+    Make svgbob's output honour the selected theme.
 
-    1. Ensures a solid <rect> background exists immediately after the opening
-       <svg ...> tag (required so dark-theme PNGs are not transparent).
-    2. Injects a <style> block that sets text/path/line/polyline fill and
-       stroke to the foreground colour, overriding svgbob defaults.
+    svgbob themes its ``.filled`` / backdrop elements from the CLI colour flags,
+    but it hardcodes ``stroke: black`` / ``fill: black`` in the base line and
+    text CSS rules — which are invisible on a dark background. A competing
+    injected <style> with bare selectors loses specificity to svgbob's own
+    ``.svgbob text`` rules, so instead we recolour those hardcoded blacks
+    directly. We also inject a full-canvas background rect so the SVG/PNG always
+    has an opaque themed background.
     """
     bg = theme_cfg["background"]
     fg = theme_cfg["foreground"]
-    font = theme_cfg["font_family"]
 
-    # Insert background rect + style after the opening <svg ...> tag.
+    # Recolour svgbob's hardcoded black base stroke/fill to the theme fg.
+    # These literals appear only in svgbob's base `.svgbob line/...` and
+    # `.svgbob text` rules; `.filled`/backdrop already use the CLI colours.
+    svg = svg.replace("stroke: black", f"stroke: {fg}")
+    svg = svg.replace("fill: black", f"fill: {fg}")
+
+    # Inject an opaque background rect right after the opening <svg ...> tag.
+    # Locate "<svg" explicitly so a leading <?xml ...?> declaration is handled.
     rect = f'<rect width="100%" height="100%" fill="{bg}"/>'
-    style = (
-        f'<style>'
-        f'text{{fill:{fg};font-family:{font};}}'
-        f'line,path,polyline,circle,ellipse{{stroke:{fg};}}'
-        f'</style>'
-    )
-    injection = f"\n{rect}\n{style}\n"
-
-    # Place injection right after the opening <svg ...> tag. Locate "<svg"
-    # explicitly (not the first ">" in the doc) so a leading <?xml ...?>
-    # declaration doesn't cause the injection to land before the root element.
     svg_start = svg.find("<svg")
     if svg_start == -1:
         return svg  # malformed — return as-is
     svg_tag_end = svg.find(">", svg_start)
     if svg_tag_end == -1:
         return svg  # malformed — return as-is
-    return svg[: svg_tag_end + 1] + injection + svg[svg_tag_end + 1 :]
+    return svg[: svg_tag_end + 1] + "\n" + rect + "\n" + svg[svg_tag_end + 1 :]
 
 
 # ---------------------------------------------------------------------------
@@ -185,14 +165,15 @@ def ascii_to_svg(text: str, theme: str = _DEFAULT_THEME) -> str:
 # ---------------------------------------------------------------------------
 
 def svg_to_png(svg_string: str) -> bytes:
-    """Rasterise an SVG string to PNG bytes using cairosvg."""
+    """
+    Rasterise an SVG string to PNG bytes using cairosvg.
+
+    cairosvg is safe by default (``unsafe=False``): it does not fetch external
+    URLs or read local files, so no custom URL fetcher is needed (and cairosvg's
+    ``svg2png`` does not accept one). svgbob output is self-contained anyway.
+    """
     try:
         import cairosvg  # type: ignore[import]
-        return cairosvg.svg2png(
-            bytestring=svg_string.encode(),
-            url_fetcher=url_fetcher,
-        )
-    except ConversionError:
-        raise
+        return cairosvg.svg2png(bytestring=svg_string.encode(), unsafe=False)
     except Exception as exc:
         raise ConversionError(f"PNG rendering failed: {exc}") from exc
